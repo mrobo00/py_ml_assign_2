@@ -1,6 +1,19 @@
 
-import streamlit as st
+import joblib
 import pandas as pd
+import streamlit as st
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix, classification_report, roc_curve, auc
+from sklearn.preprocessing import label_binarize
+
+from evaluate import compute_metrics
+
+TARGET = "grade_class"
+DROP_COLS = ["final_grade_pct", "at_risk_flag", "student_id", "survey_date"]   # ignored if present
+MODEL_FILES = {"Logistic Regression": "logistic_regression", "Decision Tree": "decision_tree",
+               "KNN": "knn", "Naive Bayes (Gaussian)": "naive_bayes",
+               "Support Vector Machine (SVM)": "svm"}
 
 # Page configuration
 st.set_page_config(
