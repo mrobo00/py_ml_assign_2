@@ -1,0 +1,20 @@
+{
+  "scikit_learn_version": "1.9.1",
+  "numpy_version": "2.5.4",
+  "pandas_version": "3.1.0",
+  "classes": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "F"
+  ],
+  "model_files": {
+    "Logistic Regression": "logistic_regression.joblib",
+    "Decision Tree": "decision_tree.joblib",
+    "KNN": "knn.joblib",
+    "Naive Bayes (Gaussian)": "naive_bayes.joblib",
+    "Support Vector Machine (SVM)": "svm.joblib"
+  },
+  "test_rows": 2400
+}
