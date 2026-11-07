@@ -36,23 +36,31 @@ st.set_page_config(page_title="Student Grade Classifier", page_icon="🎓", layo
 # ----------------------------------------------------------------------------
 # Helper: classification report as a complete table
 # ----------------------------------------------------------------------------
-def report_table(y_true, y_pred, class_names):
+def report_tables(y_true, y_pred, class_names):
     """
-    Build the classification report as a DataFrame in which EVERY cell is filled.
+    Build the classification report as TWO complete tables, because they hold different information:
 
-    sklearn's text report leaves precision and recall empty in the 'accuracy' row. Here the overall
-    accuracy is written into precision, recall and f1-score of that row (for single-label multi-class
-    data, micro-averaged precision = recall = f1 = accuracy) and the support is the total sample count.
-    Rows: one per class, accuracy, macro avg, weighted avg.
+      per_class : one row per grade (A..F)  ->  precision, recall, f1-score, support of THAT grade
+      overall   : summaries over ALL grades ->  accuracy, macro average, weighted average
+
+    sklearn's text report mixes both in one list and leaves precision/recall empty in the 'accuracy' row.
+    Here the overall accuracy is written into precision, recall and f1-score of its row (for single-label
+    multi-class data, micro-averaged precision = recall = f1 = accuracy) and support is the total sample count.
     """
     rep = classification_report(y_true, y_pred, labels=range(len(class_names)),
                                 target_names=class_names, zero_division=0, output_dict=True)
-    acc = rep.pop("accuracy")                                   # a single number in sklearn's dict
-    total = int(rep["weighted avg"]["support"])
-    rep["accuracy"] = {"precision": acc, "recall": acc, "f1-score": acc, "support": total}
-    order = list(class_names) + ["accuracy", "macro avg", "weighted avg"]   # accuracy right after the classes
-    # round to 4 decimals with the same rule as the comparison table, so both always agree
-    return pd.DataFrame(rep).T.loc[order, ["precision", "recall", "f1-score", "support"]].round(4)
+    cols = ["precision", "recall", "f1-score", "support"]
+    per_class = pd.DataFrame({c: rep[c] for c in class_names}).T[cols]
+    per_class.index.name = "Grade"
+    acc = rep["accuracy"]                                        # a single number in sklearn's dict
+    total = rep["weighted avg"]["support"]
+    overall = pd.DataFrame({
+        "Accuracy": {"precision": acc, "recall": acc, "f1-score": acc, "support": total},
+        "Macro average": rep["macro avg"],
+        "Weighted average": rep["weighted avg"]}).T[cols]
+    overall.index.name = "Summary"
+    # round to 4 decimals with the same rule as the comparison table, so all numbers on the page agree
+    return per_class.round(4), overall.round(4)
 
 
 # ----------------------------------------------------------------------------
@@ -157,13 +165,25 @@ with tab1:
                 else:
                     st.info("ROC curves need all 5 classes in the uploaded labels.")
 
-            # classification report: a COMPLETE table at full page width.
-            # st.table (static table) is used instead of a scrollable widget, so every row and every
-            # column (precision, recall, f1-score, support) is always visible - nothing is cut off.
+            # classification report, shown as two full-width tables (static st.table: nothing is cut off)
+            per_class, overall = report_tables(y, preds[choice], classes)
+            fmt = {"precision": "{:.4f}", "recall": "{:.4f}", "f1-score": "{:.4f}", "support": "{:.0f}"}
+
             st.subheader("Classification report")
-            rpt = report_table(y, preds[choice], classes)
-            st.table(rpt.style.format({"precision": "{:.4f}", "recall": "{:.4f}",
-                                       "f1-score": "{:.4f}", "support": "{:.0f}"}))
+            st.markdown("**1. Per-grade metrics** – one row per grade (A–F), each calculated only for that grade")
+            st.table(per_class.style.format(fmt))
+            st.caption("**precision** = of the students predicted as this grade, the share that really have it · "
+                       "**recall** = of the students who really have this grade, the share the model found · "
+                       "**f1-score** = balance of precision and recall · "
+                       "**support** = number of students with this grade in the uploaded test data (the true count)")
+
+            st.markdown("**2. Overall summary** – one row for all grades together (not per grade)")
+            st.table(overall.style.format(fmt))
+            st.caption("**Accuracy** = correct predictions ÷ all students (one number, so it is repeated in each column) · "
+                       "**Macro average** = plain mean of the 5 grades, so rare grades A and F count as much as C · "
+                       "**Weighted average** = mean weighted by support, so big grades count more "
+                       "(these are the Precision / Recall / F1 shown in the tiles above) · "
+                       "**support** here = total number of students")
 
             # offer the predictions of the selected model as a downloadable CSV
             out = df.copy()
