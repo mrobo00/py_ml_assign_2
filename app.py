@@ -177,13 +177,28 @@ with tab1:
                        "**f1-score** = balance of precision and recall · "
                        "**support** = number of students with this grade in the uploaded test data (the true count)")
 
-            st.markdown("**2. Overall summary** – one row for all grades together (not per grade)")
-            st.table(overall.style.format(fmt))
-            st.caption("**Accuracy** = correct predictions ÷ all students (one number, so it is repeated in each column) · "
-                       "**Macro average** = plain mean of the 5 grades, so rare grades A and F count as much as C · "
-                       "**Weighted average** = mean weighted by support, so big grades count more "
-                       "(these are the Precision / Recall / F1 shown in the tiles above) · "
-                       "**support** here = total number of students")
+            st.markdown("**2. Overall summary** – combines all grades into one number per metric (not per grade)")
+            # Descriptive headings: the plain names (precision, recall...) are ambiguous here because
+            # these rows are averages / pooled totals, so each heading says WHAT is averaged or counted.
+            overall_view = overall.rename(
+                columns={"precision": "Precision: share of predictions that were correct",
+                         "recall": "Recall: share of real cases the model found",
+                         "f1-score": "F1-score: balance of precision and recall",
+                         "support": "Students counted (support)"},
+                index={"Accuracy": "Accuracy: all students pooled, each counted once",
+                       "Macro average": "Macro average: mean of the 5 grades, every grade equal weight",
+                       "Weighted average": "Weighted average: mean of the 5 grades, weighted by students per grade"})
+            overall_view.index.name = "How the grades are combined"
+            fmt2 = {c: "{:.4f}" for c in overall_view.columns[:3]}
+            fmt2[overall_view.columns[3]] = "{:.0f}"
+            st.table(overall_view.style.format(fmt2))
+            st.caption("**Accuracy row:** when every student is counted once, correct predictions ÷ all students is the same number "
+                       "whether you call it precision, recall or F1, so the value repeats in those three columns. · "
+                       "**Macro average:** the 5 per-grade values above are averaged with equal weight, so the rare grades A and F "
+                       "pull the result down as much as the large grade C. · "
+                       "**Weighted average:** each grade's value is weighted by its number of students, so large grades count more; "
+                       "these are the Precision / Recall / F1 shown in the tiles at the top. · "
+                       "**Students counted:** all students in the uploaded file.")
 
             # offer the predictions of the selected model as a downloadable CSV
             out = df.copy()
