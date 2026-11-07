@@ -22,8 +22,8 @@ This is a **multi-class classification** problem. Five classification models –
 **Preprocessing:** median imputation + standard scaling for numeric features; most-frequent imputation + one-hot encoding for categorical features (fitted on training data only and stored inside each saved model pipeline). 80/20 stratified train/test split, `random_state=42` → 9,600 training and 2,400 test rows (`test_data.csv`).
 
 ## c. GitHub repository link
-- **GitHub repository:** `<paste your repository link here>`
-- **Live Streamlit app:** `<paste your Streamlit Community Cloud link here>`
+- **GitHub repository:** `https://github.com/mrobo00/py_ml_assign_2`
+- **Live Streamlit app:** `https://pymlassign2-euetcxq8kehc5rnfbrncrj.streamlit.app/`
 
 ## d. Models used
 All five models were trained on the same training split and evaluated on the same 2,400-row hold-out test set. Because the target has five classes, **AUC** is one-vs-rest, macro-averaged; **Precision, Recall and F1** are weighted averages over classes; **MCC** is the multi-class Matthews correlation coefficient.
