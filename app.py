@@ -47,59 +47,93 @@ st.sidebar.markdown(
 
 st.title("🎓 Student Grade Class Prediction")
 st.caption("Upload the test CSV, pick a model, and see the evaluation metrics, confusion matrix and classification report.")
-# =====================================
-# APPLICATION HEADER
-# =====================================
 
-st.title("🤖 Building and Comparing Performance of Machine Learning Models")
-st.caption("A framework for managing ML models.")
 
-st.divider()
+tab1, tab2 = st.tabs(["🧪 Evaluate on test data", "🧍 Predict one student"])
 
-# =====================================
-# SIDEBAR NAVIGATION
-# =====================================
+# ------------------------------------------------ tab 1: upload + evaluate
+with tab1:
+    up = st.file_uploader("Upload test data (CSV). It must contain all input features and the target column "
+                          f"`{TARGET}` – e.g. the provided `test_data.csv`.", type="csv")
+    use_sample = st.checkbox("Use the bundled test_data.csv instead", value=False, disabled=up is not None)
+    df = pd.read_csv(up) if up is not None else (pd.read_csv("test_data.csv") if use_sample else None)
 
-st.sidebar.title("Navigation")
+    if df is None:
+        st.info("Upload a CSV (or tick the checkbox) to see results.")
+    else:
+        missing = [c for c in feature_cols + [TARGET] if c not in df]
+        bad = [] if TARGET in missing else sorted(set(df[TARGET].dropna().unique()) - set(classes))
+        if missing:
+            st.error(f"The uploaded file is missing required columns: {missing}")
+        elif bad:
+            st.error(f"`{TARGET}` has unexpected values {bad}; expected only {classes}.")
+        else:
+            X = df[feature_cols]
+            y = le.transform(df[TARGET])
+            st.write(f"**{len(df):,} rows loaded.**")
 
-page = st.sidebar.selectbox(
-    "Select Module",
-    [
-        "Home",
-        "Model Configuration",
-        "Model Execution",
-        "Results"
-    ]
-)
+            # results for every model on the uploaded test data
+            preds, probas, rows = {}, {}, {}
+            for n, p in models.items():
+                preds[n], probas[n] = p.predict(X), p.predict_proba(X)
+                rows[n] = compute_metrics(y, preds[n], probas[n])
+            allres = pd.DataFrame(rows).T.round(4); allres.index.name = "ML Model"
 
-# =====================================
-# HOME
-# =====================================
+            st.subheader("Evaluation metrics – all models on the uploaded test data")
+            st.dataframe(allres.style.highlight_max(axis=0, color="#b7e4c7").format("{:.4f}", na_rep="n/a"),
+                         use_container_width=True)
+            st.caption("AUC = one-vs-rest macro (needs all 5 classes present) · Precision/Recall/F1 = weighted average")
 
-if page == "Home":
+            st.subheader(f"Selected model: {choice}")
+            for col, (k, v) in zip(st.columns(6), rows[choice].items()):
+                col.metric(k, "n/a" if pd.isna(v) else f"{v:.4f}")
 
-    st.header("Dashboard")
+            a, b = st.columns(2)
+            with a:
+                fig, ax = plt.subplots(figsize=(5, 4))
+                sns.heatmap(confusion_matrix(y, preds[choice], labels=range(len(classes))), annot=True, fmt="d",
+                            cmap="Blues", xticklabels=classes, yticklabels=classes, ax=ax)
+                ax.set_xlabel("Predicted"); ax.set_ylabel("Actual"); ax.set_title(f"Confusion matrix – {choice}")
+                st.pyplot(fig)
+            with b:
+                st.markdown("**Classification report**")
+                st.code(classification_report(y, preds[choice], labels=range(len(classes)),
+                                              target_names=classes, zero_division=0))
 
-    col1, col2, col3 = st.columns(3)
+            with st.expander("ROC curves (one-vs-rest) for the selected model"):
+                if len(set(y)) == len(classes):
+                    Y = label_binarize(y, classes=range(len(classes)))
+                    fig, ax = plt.subplots(figsize=(6, 4))
+                    for i, c in enumerate(classes):
+                        fpr, tpr, _ = roc_curve(Y[:, i], probas[choice][:, i])
+                        ax.plot(fpr, tpr, label=f"{c} (AUC={auc(fpr, tpr):.2f})")
+                    ax.plot([0, 1], [0, 1], "k--", lw=1); ax.set_xlabel("FPR"); ax.set_ylabel("TPR"); ax.legend()
+                    st.pyplot(fig)
+                else:
+                    st.write("ROC needs all 5 classes in the uploaded labels.")
 
-    col1.metric("Available Models", 0)
-    col2.metric("Executed Models", 0)
-    col3.metric("Application Status", "Ready")
+            out = df.copy(); out["predicted_grade_class"] = le.inverse_transform(preds[choice])
+            st.download_button("Download predictions (CSV)", out.to_csv(index=False).encode(),
+                               "predictions.csv", "text/csv")
 
-    st.divider()
-
-    st.subheader("Application Overview")
-
-    st.info(
-        "Welcome to the ML Application Framework. "
-        "Model integration and execution functionality "
-        "will be added in future releases."
-    )
-
-# =====================================
-# FOOTER
-# =====================================
-
-st.divider()
-
-st.caption("ML Application Framework | Built with Python and Streamlit")
+# ------------------------------------------------- tab 2: single prediction
+with tab2:
+    st.subheader(f"Predict one student's grade class with: {choice}")
+    ref = pd.read_csv("test_data.csv")[feature_cols]          # only used for input ranges / defaults
+    num_cols = ref.select_dtypes("number").columns
+    values, cols = {}, st.columns(3)
+    for i, c in enumerate(feature_cols):
+        with cols[i % 3]:
+            if c in num_cols:
+                s = ref[c].dropna()
+                if (s % 1 == 0).all():
+                    values[c] = st.number_input(c, int(s.min()), int(s.max()), int(s.median()), step=1)
+                else:
+                    values[c] = st.number_input(c, float(s.min()), float(s.max()), float(round(s.median(), 2)))
+            else:
+                opts = sorted(ref[c].dropna().unique().tolist())
+                values[c] = st.selectbox(c, opts, index=opts.index(ref[c].mode()[0]))
+    if st.button("Predict", type="primary"):
+        p = models[choice].predict_proba(pd.DataFrame([values])[feature_cols])[0]
+        st.success(f"Predicted grade class: **{classes[int(p.argmax())]}** (confidence {p.max():.1%})")
+        st.bar_chart(pd.Series(p, index=classes, name="probability"))
