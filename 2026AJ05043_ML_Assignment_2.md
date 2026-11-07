@@ -111,7 +111,6 @@ model/                  saved models (.joblib): logistic_regression, decision_tr
 test_data.csv           hold-out test set (2,400 rows, features + target) - upload in the app
 metrics.csv             comparison table above
 requirements.txt        dependencies for Streamlit Cloud
-README.md / README.pdf  this document
 Student_Grade_Classification.ipynb   complete scikit-learn solution notebook (also generates the .joblib files)
 ML_Models_From_Scratch.ipynb         the 5 models + all metrics implemented from scratch in NumPy (learning notebook)
 student_grade_ses_dataset.csv        full dataset (training only; the app never reads it)

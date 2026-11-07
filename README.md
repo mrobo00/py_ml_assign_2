@@ -55,18 +55,19 @@ Settings: Logistic Regression (`max_iter=2000`), Decision Tree (`max_depth=6, mi
 ## Project structure
 ```
 app.py                  Streamlit app (loads saved models; no retraining)
-requirements.txt        dependencies for Streamlit Cloud
-README.md / README.pdf  this document
-test_data.csv           hold-out test set (2,400 rows) - upload in the app
-model/                  saved models (.joblib): logistic_regression,
-                        decision_tree, knn, naive_bayes, svm, label_encoder
-models_def/             one .py per classifier definition
-data_prep.py            loading, cleaning, split, preprocessing
+generate_models.py      CREATES the .joblib files: trains the 5 models, evaluates, saves, verifies
+data_prep.py            loading, cleaning, split, preprocessing pipeline
 evaluate.py             the six evaluation metrics
-train_evaluate.py       trains, evaluates and saves the models
-Student_Grade_Classification.ipynb   complete solution notebook
-student_grade_ses_dataset.csv        full dataset (training only)
+models_def/             one .py per classifier definition (+ __init__.py registry)
+model/                  saved models (.joblib): logistic_regression, decision_tree, knn,
+                        naive_bayes, svm, label_encoder  (+ model_info.json with library versions)
+test_data.csv           hold-out test set (2,400 rows, features + target) - upload in the app
 metrics.csv             comparison table above
+requirements.txt        dependencies for Streamlit Cloud
+README.md               this document
+Student_Grade_Classification.ipynb   complete scikit-learn solution notebook (also generates the .joblib files)
+ML_Models_From_Scratch.ipynb         the 5 models + all metrics implemented from scratch in NumPy (learning notebook)
+student_grade_ses_dataset.csv        full dataset (training only; the app never reads it)
 ```
 
 ## Streamlit app features
