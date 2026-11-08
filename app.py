@@ -15,8 +15,8 @@ import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 import seaborn as sns
+from typing import Any, cast
 from sklearn.metrics import confusion_matrix, classification_report, roc_curve, auc
-from sklearn.preprocessing import label_binarize
 
 from evaluate import compute_metrics       # same metric code that was used at training time
 
@@ -47,17 +47,24 @@ def report_tables(y_true, y_pred, class_names):
     Here the overall accuracy is written into precision, recall and f1-score of its row (for single-label
     multi-class data, micro-averaged precision = recall = f1 = accuracy) and support is the total sample count.
     """
-    rep = classification_report(y_true, y_pred, labels=range(len(class_names)),
-                                target_names=class_names, zero_division=0, output_dict=True)
+    rep = cast(dict[str, Any], classification_report(
+        y_true,
+        y_pred,
+        labels=range(len(class_names)),
+        target_names=class_names,
+        zero_division=0,
+        output_dict=True,
+    ))
     cols = ["precision", "recall", "f1-score", "support"]
     per_class = pd.DataFrame({c: rep[c] for c in class_names}).T[cols]
     per_class.index.name = "Grade"
-    acc = rep["accuracy"]                                        # a single number in sklearn's dict
-    total = rep["weighted avg"]["support"]
+    acc = rep["accuracy"]
+    weighted_avg = cast(dict[str, Any], rep.get("weighted avg", {}))
+    total = weighted_avg.get("support", 0)
     overall = pd.DataFrame({
         "Accuracy": {"precision": acc, "recall": acc, "f1-score": acc, "support": total},
         "Macro average": rep["macro avg"],
-        "Weighted average": rep["weighted avg"]}).T[cols]
+        "Weighted average": weighted_avg}).T[cols]
     overall.index.name = "Summary"
     # round to 4 decimals with the same rule as the comparison table, so all numbers on the page agree
     return per_class.round(4), overall.round(4)
@@ -140,7 +147,8 @@ with tab1:
             st.subheader(f"Selected model: {choice}")
             # tiles use the SAME rounded values as the comparison table above (e.g. 0.58125 -> 0.5812 in both)
             for col, (k, v) in zip(st.columns(6), allres.loc[choice].items()):
-                col.metric(k, "n/a" if pd.isna(v) else f"{v:.4f}")
+                label = str(k)
+                col.metric(label, "n/a" if pd.isna(v) else f"{v:.4f}")
 
             # (d) confusion matrix (left) and ROC curves (right) of the selected model, side by side
             a, b = st.columns(2)
@@ -153,10 +161,9 @@ with tab1:
                 st.pyplot(fig)
             with b:
                 if len(set(y)) == len(classes):                       # ROC needs every class to be present
-                    Y = label_binarize(y, classes=range(len(classes)))   # one 0/1 column per class
                     fig, ax = plt.subplots(figsize=(5, 4))
                     for i, c in enumerate(classes):
-                        fpr, tpr, _ = roc_curve(Y[:, i], probas[choice][:, i])
+                        fpr, tpr, _ = roc_curve(y == i, probas[choice][:, i])
                         ax.plot(fpr, tpr, label=f"{c} (AUC={auc(fpr, tpr):.2f})")
                     ax.plot([0, 1], [0, 1], "k--", lw=1)             # diagonal = random guessing
                     ax.set_xlabel("False positive rate"); ax.set_ylabel("True positive rate")
@@ -167,18 +174,18 @@ with tab1:
 
             # classification report, shown as two full-width tables (static st.table: nothing is cut off)
             per_class, overall = report_tables(y, preds[choice], classes)
-            fmt = {"precision": "{:.4f}", "recall": "{:.4f}", "f1-score": "{:.4f}", "support": "{:.0f}"}
-
             st.subheader("Classification report")
             st.markdown("**1. Per-grade metrics** – one row per grade (A–F), each calculated only for that grade")
-            st.table(per_class.style.format(fmt))
+            st.table(per_class.style.format("{:.4f}", subset=["precision", "recall", "f1-score"])
+                     .format("{:.0f}", subset=["support"]))
             st.caption("**precision** = of the students predicted as this grade, the share that really have it · "
                        "**recall** = of the students who really have this grade, the share the model found · "
                        "**f1-score** = balance of precision and recall · "
                        "**support** = number of students with this grade in the uploaded test data (the true count)")
 
             st.markdown("**2. Overall summary** – one row for all grades together (not per grade)")
-            st.table(overall.style.format(fmt))
+            st.table(overall.style.format("{:.4f}", subset=["precision", "recall", "f1-score"])
+                     .format("{:.0f}", subset=["support"]))
             st.caption("**Accuracy** = correct predictions ÷ all students (one number, so it is repeated in each column) · "
                        "**Macro average** = plain mean of the 5 grades, so rare grades A and F count as much as C · "
                        "**Weighted average** = mean weighted by support, so big grades count more "
