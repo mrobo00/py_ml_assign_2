@@ -99,7 +99,7 @@ st.sidebar.markdown(
     "**Target:** `grade_class` (A–F)  \n"
     "Models are loaded from `model/` – nothing is retrained on the uploaded data.")
 
-st.title("🎓 Student Grade Class Prediction")
+st.title("🎓 Student Grade Class Prediction - ML Assignment-2 2026AJ05043")
 st.caption("Upload the test CSV, pick a model, and see the evaluation metrics, confusion matrix and classification report.")
 
 tab1, tab2 = st.tabs(["🧪 Evaluate on test data", "🧍 Predict one student"])
