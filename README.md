@@ -1,4 +1,4 @@
-# Student Grade Class Prediction – ML Assignment 2
+# Student Grade Class Prediction – ML Assignment 2 - 2026AJ05043
 
 ## a. Problem statement
 Predict a secondary-school student's **letter grade class (A, B, C, D or F)** from socioeconomic and behavioural survey information (family income, parents' education and occupation, residence, internet access, study hours, attendance, tutoring, parental involvement, previous-year grade, etc.).
