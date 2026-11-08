@@ -65,10 +65,23 @@ test_data.csv           hold-out test set (2,400 rows, features + target) - uplo
 metrics.csv             comparison table above
 requirements.txt        dependencies for Streamlit Cloud
 README.md               this document
-Student_Grade_Classification.ipynb   complete scikit-learn solution notebook (also generates the .joblib files)
-ML_Models_From_Scratch.ipynb         the 5 models + all metrics implemented from scratch in NumPy (learning notebook)
 student_grade_ses_dataset.csv        full dataset (training only; the app never reads it)
 ```
+## How the .joblib model files are generated
+Run once (about 30-60 seconds):
+
+```
+python generate_models.py
+```
+
+1.	loads the dataset, drops columns AA / AC / identifiers, removes duplicates and makes the 80/20 stratified split;
+2.	writes the 20% hold-out part to test_data.csv;
+3.	trains each classifier inside a pipeline;
+4.	evaluates every model with the six metrics and writes metrics.csv;
+5.	saves each pipeline with joblib.dump to model/<name>.joblib, plus model/label_encoder.joblib and model/model_info.json;
+6.	reloads every file and checks that its predictions are identical to the in-memory model.
+Because the whole pipeline is saved, the app can take a raw CSV row and predict without retraining.
+
 
 ## Streamlit app features
 1. **Dataset upload (CSV)** – upload the test data (must contain all input features and the `grade_class` target column).
@@ -77,7 +90,7 @@ student_grade_ses_dataset.csv        full dataset (training only; the app never 
 4. **Confusion matrix and classification report** for the selected model (plus ROC curves and downloadable predictions).
 5. **Predict one student** – optional form for single predictions.
 
-The app loads the saved models from `model/` and only calls `predict` / `predict_proba` – it never retrains on the uploaded data.
+The app loads the saved models from `model/` and only predicts – it never retrains on the uploaded data.
 
 ## Run locally
 ```
