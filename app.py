@@ -30,7 +30,7 @@ MODEL_FILES = {"Logistic Regression": "logistic_regression", "Decision Tree": "d
                "KNN": "knn", "Naive Bayes (Gaussian)": "naive_bayes",
                "Support Vector Machine (SVM)": "svm"}
 
-st.set_page_config(page_title="Student Grade Classifier", page_icon="🎓", layout="wide")
+st.set_page_config(page_title="Student Grade Classifier - ML Assignment-2 2026AJ05043", page_icon="🎓", layout="wide")
 
 
 # ----------------------------------------------------------------------------
