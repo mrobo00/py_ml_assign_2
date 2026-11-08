@@ -140,7 +140,10 @@ with tab1:
 
             # (c) evaluation metrics of every model side by side (best value per column is highlighted)
             st.subheader("Evaluation metrics – all models on the uploaded test data")
-            st.dataframe(allres.style.highlight_max(axis=0, color="#b7e4c7").format("{:.4f}", na_rep="n/a"))
+            # best value per column: dark green background with explicit WHITE bold text, so the number stays
+            # readable (a light highlight made the default white text in dark mode almost invisible)
+            best_style = "background-color: #1b7f3b; color: #ffffff; font-weight: 700;"
+            st.dataframe(allres.style.highlight_max(axis=0, props=best_style).format("{:.4f}", na_rep="n/a"))
             st.caption("AUC = one-vs-rest macro (needs all 5 classes present) · Precision/Recall/F1 = weighted average")
 
             # metrics of the model chosen in the sidebar, shown as 6 big numbers
